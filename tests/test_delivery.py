@@ -1,142 +1,115 @@
 import unittest
-import datetime
 from src.delivery_service import calculate_delivery_cost
 
 
-class TestDeliveryCost(unittest.TestCase):
-    """Юнит-тесты для модуля расчета стоимости доставки."""
+class TestDeliveryService(unittest.TestCase):
+    def test_standard_delivery_basic(self):
+        cost, date = calculate_delivery_cost(2.0, 100, "обычный", False)
+        self.assertEqual(cost, 700)
+        self.assertEqual(date, "2026-09-04")
 
-    def test_weight_below_minimum_returns_error(self):
-        """Вес меньше 0.1 кг — ошибка."""
-        self.assertEqual(
-            calculate_delivery_cost(0.05, 100, "обычный"),
-            (-1, "0000-00-00")
-        )
-
-    def test_weight_above_maximum_returns_error(self):
-        """Вес больше 50 кг — ошибка."""
-        self.assertEqual(
-            calculate_delivery_cost(50.1, 100, "обычный"),
-            (-1, "0000-00-00")
-        )
-
-    def test_weight_at_lower_boundary_is_accepted(self):
-        """Вес ровно 0.1 кг — допустимо."""
-        cost, _ = calculate_delivery_cost(0.1, 100, "обычный")
-        self.assertGreater(cost, 0)
-
-    def test_weight_at_upper_boundary_is_accepted(self):
-        """Вес ровно 50 кг — допустимо."""
-        cost, _ = calculate_delivery_cost(50.0, 100, "обычный")
-        self.assertGreater(cost, 0)
-
-    def test_distance_zero_returns_error(self):
-        """Расстояние 0 км — ошибка."""
-        self.assertEqual(
-            calculate_delivery_cost(10, 0, "обычный"),
-            (-1, "0000-00-00")
-        )
-
-    def test_distance_above_maximum_returns_error(self):
-        """Расстояние больше 5000 км — ошибка."""
-        self.assertEqual(
-            calculate_delivery_cost(10, 5001, "обычный"),
-            (-1, "0000-00-00")
-        )
-
-    def test_distance_at_boundaries_is_accepted(self):
-        """Расстояние 1 км и 5000 км — допустимо."""
-        self.assertGreater(calculate_delivery_cost(10, 1, "обычный")[0], 0)
-        self.assertGreater(calculate_delivery_cost(10, 5000, "обычный")[0], 0)
-
-    def test_invalid_package_type_returns_error(self):
-        """Несуществующий тип посылки — ошибка."""
-        self.assertEqual(
-            calculate_delivery_cost(10, 100, "стеклянный"),
-            (-1, "0000-00-00")
-        )
-
-    def test_all_valid_package_types_accepted(self):
-        """Все три допустимых типа принимаются."""
-        for t in ["обычный", "хрупкий", "опасный"]:
-            cost, _ = calculate_delivery_cost(10, 100, t)
-            self.assertGreater(cost, 0)
-
-    def test_base_cost_for_light_regular_package(self):
-        """Легкая обычная посылка: 200 + 100*5 = 700."""
-        cost, _ = calculate_delivery_cost(1.0, 100, "обычный")
+    def test_weight_boundary_min(self):
+        cost, date = calculate_delivery_cost(0.1, 100, "обычный", False)
         self.assertEqual(cost, 700)
 
-    def test_base_cost_for_minimum_distance(self):
-        """Минимальное расстояние: 200 + 1*5 = 205."""
-        cost, _ = calculate_delivery_cost(1.0, 1, "обычный")
+    def test_weight_boundary_max(self):
+        cost, date = calculate_delivery_cost(50.0, 100, "обычный", False)
+        self.assertEqual(cost, 1050)
+
+    def test_weight_invalid_too_low(self):
+        cost, date = calculate_delivery_cost(0.05, 100, "обычный", False)
+        self.assertEqual(cost, -1)
+        self.assertEqual(date, "0000-00-00")
+
+    def test_weight_invalid_too_high(self):
+        cost, date = calculate_delivery_cost(55.0, 100, "обычный", False)
+        self.assertEqual(cost, -1)
+        self.assertEqual(date, "0000-00-00")
+
+    def test_distance_boundary_min(self):
+        cost, date = calculate_delivery_cost(2.0, 1, "обычный", False)
         self.assertEqual(cost, 205)
 
-    def test_weight_between_5_and_20_applies_1_2_coefficient(self):
-        """Вес 10 кг: 700 * 1.2 = 840."""
-        cost, _ = calculate_delivery_cost(10.0, 100, "обычный")
-        self.assertEqual(cost, 840)
+    def test_distance_boundary_max(self):
+        cost, date = calculate_delivery_cost(2.0, 5000, "обычный", False)
+        self.assertEqual(cost, 25200)
 
-    def test_weight_over_20_applies_1_5_coefficient(self):
-        """Вес 25 кг: 700 * 1.5 = 1050."""
-        cost, _ = calculate_delivery_cost(25.0, 100, "обычный")
-        self.assertEqual(cost, 1050)
+    def test_distance_invalid_too_low(self):
+        cost, date = calculate_delivery_cost(2.0, 0, "обычный", False)
+        self.assertEqual(cost, -1)
 
-    def test_weight_exactly_5_has_no_coefficient(self):
-        """Вес ровно 5 кг — коэффициент не применяется: 700."""
-        cost, _ = calculate_delivery_cost(5.0, 100, "обычный")
-        self.assertEqual(cost, 700)
+    def test_distance_invalid_too_high(self):
+        cost, date = calculate_delivery_cost(2.0, 5500, "обычный", False)
+        self.assertEqual(cost, -1)
 
-    def test_weight_exactly_20_applies_1_5_coefficient(self):
-        """Вес ровно 20 кг: 700 * 1.5 = 1050."""
-        cost, _ = calculate_delivery_cost(20.0, 100, "обычный")
-        self.assertEqual(cost, 1050)
+    def test_invalid_package_type(self):
+        cost, date = calculate_delivery_cost(2.0, 100, "элитный", False)
+        self.assertEqual(cost, -1)
 
-    def test_fragile_package_adds_300(self):
-        """Хрупкая: 700 + 300 = 1000."""
-        cost, _ = calculate_delivery_cost(1.0, 100, "хрупкий")
+    def test_package_type_fragile(self):
+        cost, date = calculate_delivery_cost(2.0, 100, "хрупкий", False)
         self.assertEqual(cost, 1000)
 
-    def test_dangerous_package_adds_1000(self):
-        """Опасная: 700 + 1000 = 1700."""
-        cost, _ = calculate_delivery_cost(1.0, 100, "опасный")
+    def test_package_type_dangerous(self):
+        cost, date = calculate_delivery_cost(2.0, 100, "опасный", False)
         self.assertEqual(cost, 1700)
 
-    def test_fragile_and_heavy_combined(self):
-        """Хрупкая + вес 10 кг: 700 * 1.2 + 300 = 1140."""
-        cost, _ = calculate_delivery_cost(10.0, 100, "хрупкий")
-        self.assertEqual(cost, 1140)
+    def test_weight_medium_range(self):
+        cost, date = calculate_delivery_cost(10.0, 100, "обычный", False)
+        self.assertEqual(cost, 840)
 
-    def test_express_should_be_more_expensive_than_regular(self):
-        """ЭКСПРЕСС должен быть дороже обычной доставки."""
-        regular, _ = calculate_delivery_cost(1.0, 100, "обычный", is_express=False)
-        express, _ = calculate_delivery_cost(1.0, 100, "обычный", is_express=True)
-        self.assertGreater(express, regular)
+    def test_weight_heavy_range(self):
+        cost, date = calculate_delivery_cost(20.0, 100, "обычный", False)
+        self.assertEqual(cost, 1050)
 
-    def test_delivery_date_is_future(self):
-        """Дата доставки позже даты отправки (2026-09-03)."""
-        _, d = calculate_delivery_cost(1.0, 100, "обычный")
-        self.assertGreater(d, "2026-09-03")
+    def test_express_delivery_cost(self):
+        cost, date = calculate_delivery_cost(2.0, 100, "обычный", True)
+        self.assertEqual(cost, 980)
 
-    def test_express_delivery_is_not_zero_days(self):
-        """Экспресс на короткое расстояние не должен давать 0 дней."""
-        start = datetime.date(2026, 9, 3)
-        _, d = calculate_delivery_cost(1.0, 100, "обычный", is_express=True)
-        result = datetime.datetime.strptime(d, "%Y-%m-%d").date()
-        self.assertGreaterEqual((result - start).days, 1)
+    def test_express_delivery_days_short(self):
+        cost, date = calculate_delivery_cost(2.0, 100, "обычный", True)
+        self.assertEqual(date, "2026-09-04")
 
-    def test_long_distance_takes_more_days(self):
-        """5000 км дольше, чем 500 км."""
-        _, d1 = calculate_delivery_cost(1.0, 500, "обычный")
-        _, d2 = calculate_delivery_cost(1.0, 5000, "обычный")
-        self.assertGreater(d2, d1)
+    def test_express_delivery_days_long(self):
+        cost, date = calculate_delivery_cost(2.0, 2000, "обычный", True)
+        self.assertEqual(date, "2026-09-05")
 
-    def test_express_is_faster_than_regular(self):
-        """Экспресс приходит раньше обычной доставки."""
-        _, regular = calculate_delivery_cost(1.0, 5000, "обычный", is_express=False)
-        _, express = calculate_delivery_cost(1.0, 5000, "обычный", is_express=True)
-        self.assertLess(express, regular)
+    def test_delivery_date_standard_long(self):
+        cost, date = calculate_delivery_cost(2.0, 1500, "обычный", False)
+        self.assertEqual(date, "2026-09-06")
+
+    def test_fragile_express_combination(self):
+        cost, date = calculate_delivery_cost(2.0, 100, "хрупкий", True)
+        self.assertEqual(cost, 1400)
+
+    def test_dangerous_heavy_combination(self):
+        cost, date = calculate_delivery_cost(25.0, 100, "опасный", False)
+        self.assertEqual(cost, 2050)
+
+    def test_weight_nan_is_rejected(self):
+        cost, date = calculate_delivery_cost(float('nan'), 100, "обычный", False)
+        self.assertEqual((cost, date), (-1, "0000-00-00"))
+
+    def test_weight_just_above_five_uses_medium_coefficient(self):
+        cost, _ = calculate_delivery_cost(5.1, 100, "обычный", False)
+        self.assertEqual(cost, 840)
+
+    def test_weight_just_below_twenty_uses_medium_coefficient(self):
+        cost, _ = calculate_delivery_cost(19.9, 100, "обычный", False)
+        self.assertEqual(cost, 840)
+
+    def test_delivery_days_distance_499(self):
+        _, date = calculate_delivery_cost(2.0, 499, "обычный", False)
+        self.assertEqual(date, "2026-09-04")
+
+    def test_delivery_days_distance_1000(self):
+        _, date = calculate_delivery_cost(2.0, 1000, "обычный", False)
+        self.assertEqual(date, "2026-09-05")
+
+    def test_express_days_distance_1000(self):
+        _, date = calculate_delivery_cost(2.0, 1000, "обычный", True)
+        self.assertEqual(date, "2026-09-04")
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

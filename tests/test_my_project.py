@@ -76,3 +76,8 @@ class TestTriangle(unittest.TestCase):
     def test_almost_equal_sides_is_isosceles(self):
         t, _ = triangle(5, 5, 5.0000000001)
         self.assertIn(t, ["равносторонний", "равнобедренный"])
+
+    def test_not_valid_float_data(self): 
+        t,_ = triangle(0.1, 0.2, 0.3)
+        self.assertEqual(t.lower(),"не треугольник")
+        
